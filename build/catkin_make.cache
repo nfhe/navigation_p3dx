@@ -1,0 +1,2 @@
+dwa_planner:local-planning-benchmark/gazebo_world:local-planning-benchmark/move_base_benchmark:multi_robot_scenario:p3dx/p3dx_control:p3dx/p3dx_description:p3dx/p3dx_gazebo:slam_gmapping/gmapping:slam_gmapping/slam_gmapping
+-DCATKIN_DEVEL_PREFIX=/home/he/quad/navigation/catkin_MRPB/devel -DCMAKE_INSTALL_PREFIX=/home/he/quad/navigation/catkin_MRPB/install -G Unix Makefiles

@@ -1,0 +1,74 @@
+#!/usr/bin/env python
+
+import rospy
+import math
+import time
+from geometry_msgs.msg import PoseStamped
+from tf.transformations import quaternion_from_euler
+
+def send_goal_via_topic(x, y, theta=0.0):
+    """通过话题发送导航目标点"""
+    # 初始化ROS节点
+    rospy.init_node('fixed_goal_sender', anonymous=True)
+
+    # 创建发布者，发布到/move_base_simple/goal话题
+    goal_pub = rospy.Publisher('/move_base_simple/goal', PoseStamped, queue_size=1)
+
+    # 等待发布者初始化
+    rospy.loginfo("等待发布者初始化...")
+    time.sleep(1.0)
+
+    # 创建目标点消息
+    goal = PoseStamped()
+    goal.header.frame_id = "odom"  # 使用里程计坐标系，确保与move_base配置的global_frame一致
+    goal.header.stamp = rospy.Time.now()
+    
+    # 设置目标位置
+    goal.pose.position.x = x
+    goal.pose.position.y = y
+    goal.pose.position.z = 0.0
+    
+    # 设置目标朝向（四元数）
+    q = quaternion_from_euler(0, 0, theta)
+    goal.pose.orientation.x = q[0]
+    goal.pose.orientation.y = q[1]
+    goal.pose.orientation.z = q[2]
+    goal.pose.orientation.w = q[3]
+    
+    # 发送目标点
+    rospy.loginfo("发送目标点: x=%f, y=%f, theta=%f", x, y, theta)
+    goal_pub.publish(goal)
+    
+    # 多发送几次，确保消息被接收
+    for i in range(5):  # 增加到5次
+        rospy.loginfo("重发目标点 (%d/5)...", i+1)
+        goal_pub.publish(goal)
+        time.sleep(1.0)  # 增加等待时间到1秒
+    
+    rospy.loginfo("目标点已发送! 机器人应该开始移动。")
+    rospy.loginfo("注意：使用话题方式发送目标点无法获取导航结果反馈。")
+    
+    # 等待一段时间，让用户观察机器人是否移动
+    rospy.loginfo("等待30秒观察机器人移动...")
+    time.sleep(30)
+    
+    rospy.loginfo("程序结束。如果机器人没有移动，请检查以下问题:")
+    rospy.loginfo("1. 目标点是否太远或无法到达")
+    rospy.loginfo("2. 局部规划器参数是否配置正确")
+    rospy.loginfo("3. 传感器数据是否正常")
+    rospy.loginfo("4. 话题重映射是否正确")
+
+if __name__ == "__main__":
+    try:
+        # 预设的目标点 - 可以根据需要修改这些值
+        goal_x = 2.0       # 前进2米（增加距离使目标更明显）
+        goal_y = 0.0       # 不左右移动
+        goal_theta = 0.0   # 保持朝向不变
+        
+        # 通过话题发送目标点
+        send_goal_via_topic(goal_x, goal_y, goal_theta)
+        
+    except rospy.ROSInterruptException:
+        print("操作被中断")
+    except Exception as e:
+        rospy.logerr("发生错误: %s", str(e))

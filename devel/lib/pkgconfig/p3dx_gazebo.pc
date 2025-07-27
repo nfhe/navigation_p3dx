@@ -1,0 +1,8 @@
+prefix=/home/he/quad/navigation/catkin_MRPB/devel
+
+Name: p3dx_gazebo
+Description: Description of p3dx_gazebo
+Version: 0.0.1
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 
