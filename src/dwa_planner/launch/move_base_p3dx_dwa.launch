@@ -1,0 +1,51 @@
+<launch>
+    <!-- 选择一个仿真环境世界 -->
+    <!-- <arg name="world_name" default="(find gazebo_ros)/launch/empty_world.launch"/> -->
+    <!-- <arg name="world_name" default="$(find multi_robot_scenario)/worlds/floorplan3/floorplan3_dynamic_8.world"/> -->
+    <arg name="world_name" default="$(find multi_robot_scenario)/worlds/corridor/corridor_static.world"/>
+    <!-- 添加Gazebo GUI参数控制 -->
+    <arg name="gui" default="false"/>
+    <param name="/use_sim_time" value="true"/>
+
+    <!-- 启动Gazebo和p3dx机器人仿真 -->
+    <include file="$(find p3dx_gazebo)/launch/p3dx_gazebo.launch">
+        <arg name="world_name" value="$(arg world_name)"/>
+        <arg name="gui" value="$(arg gui)"/>
+    </include>
+
+    <!-- 添加静态坐标转换从odom到map -->
+    <node pkg="tf" type="static_transform_publisher" name="map_to_odom"
+        args="0 0 0 0 0 0 map odom 100" />
+
+    <!-- 启动DWA局部规划器（带日志功能） -->
+    <include file="$(find dwa_planner)/launch/local_planner.launch">
+    <arg name="ns" value="dwa_planner"/>
+    <arg name="cmd_vel" value="/RosAria/cmd_vel"/>
+    <arg name="odom" value="/RosAria/odom"/>
+    <arg name="scan" value="/scan"/>
+    <arg name="local_map" value="/map"/>
+    <arg name="global_frame" value="map"/>
+    <arg name="use_scan_as_input" value="true"/>
+    <!-- 启用日志记录 -->
+    <arg name="enable_logging" value="true"/>
+    <arg name="log_filename" value="$(find dwa_planner)/logs/dwa_navigation_log.txt"/>
+    </include>
+ 
+    <!-- 启动导航数据记录器 -->
+    <node pkg="dwa_planner" type="data_logger_node" name="navigation_data_logger" output="screen">
+        <param name="log_dir" value="$(find dwa_planner)/logs"/>
+    </node>
+
+    <!-- 启动轨迹可视化节点 -->
+    <node pkg="dwa_planner" type="trajectory_visualizer_node" name="trajectory_visualizer" output="screen">
+    <param name="odom_topic" value="/RosAria/odom"/>
+    <param name="goal_topic" value="/move_base_simple/goal"/>
+    <param name="frame_id" value="map"/>
+    <param name="trajectory_duration" value="3600.0"/>
+    <param name="marker_lifetime" value="0.5"/>
+    </node>
+
+    <!-- 启动RViz可视化 -->
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find dwa_planner)/launch/p3dx_dwa.rviz" required="true"/>
+
+</launch>

@@ -1,0 +1,16 @@
+# 局部代价地图参数
+
+local_costmap:
+  global_frame: map
+  robot_base_frame: base_link
+  update_frequency: 10.0  # 增加更新频率
+  publish_frequency: 5.0  # 增加发布频率
+  rolling_window: true
+  width: 6.0  # 增加感知范围
+  height: 6.0  # 增加感知范围
+  resolution: 0.05
+  transform_tolerance: 0.5
+  plugins:
+    - {name: static_layer, type: "costmap_2d::StaticLayer"}
+    - {name: obstacle_layer, type: "costmap_2d::ObstacleLayer"}
+    - {name: inflation_layer, type: "costmap_2d::InflationLayer"}

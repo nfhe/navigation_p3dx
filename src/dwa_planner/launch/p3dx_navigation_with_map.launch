@@ -1,0 +1,88 @@
+<launch>
+    <!-- 启动TF警告过滤器节点 -->
+    <node pkg="dwa_planner" type="tf_warning_suppressor.py" name="tf_warning_suppressor" output="screen" />
+
+    <!-- 直接设置日志级别，抑制TF警告 -->
+    <param name="/rosout/disable_topics" value="true" />
+    <param name="/ros/tf/enable_debug" value="false" />
+    <param name="/rosconsole/logger_level/tf" value="2" />
+    <param name="/rosconsole/logger_level/tf2" value="2" />
+    <param name="/rosconsole/logger_level/ros.tf" value="3" />
+    <param name="/rosconsole/logger_level/ros.tf2" value="3" />
+
+    <!-- 地图和世界参数设置 -->
+    <param name="/use_sim_time" value="true"/>
+    <arg name="map_file" default="$(find dwa_planner)/maps/corridor/mymap.yaml"/>
+    <!-- <arg name="world_name" default="$(find multi_robot_scenario)/worlds/corridor/corridor_static.world"/> -->
+    <arg name="world_name" default="$(find multi_robot_scenario)/worlds/corridor/corridor_dynamic_8.world"/>
+    <arg name="gui" default="true"/>
+    <arg name="global_frame" value="map"/>
+
+    <!-- 启动Gazebo和p3dx机器人仿真 -->
+    <include file="$(find p3dx_gazebo)/launch/p3dx_gazebo.launch">
+        <arg name="world_name" value="$(arg world_name)"/>
+        <arg name="gui" value="$(arg gui)"/>
+    </include>
+
+    <!-- 加载地图 -->
+    <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)">
+        <param name="frame_id" value="$(arg global_frame)"/>
+    </node>
+
+    <!-- 启动AMCL定位 -->
+    <node pkg="amcl" type="amcl" name="amcl" output="screen">
+        <!-- 加载AMCL参数 -->
+        <rosparam file="$(find dwa_planner)/params/amcl_params.yaml" command="load" />
+        <param name="global_frame_id" value="$(arg global_frame)"/>
+        
+        <!-- 配置话题 -->
+        <remap from="scan" to="/scan"/>
+    </node>
+
+    <!-- 启动Move Base (集成全局和局部规划) -->
+    <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+        <!-- 加载Move Base参数 -->
+        <rosparam file="$(find dwa_planner)/params/move_base_params.yaml" command="load" />
+        
+        <!-- 加载全局规划器参数 -->
+        <rosparam file="$(find dwa_planner)/params/global_planner_params.yaml" command="load" />
+        
+        <!-- 加载成本地图通用参数 -->
+        <rosparam file="$(find dwa_planner)/params/costmap_common_params.yaml" command="load" ns="global_costmap" />
+        <rosparam file="$(find dwa_planner)/params/costmap_common_params.yaml" command="load" ns="local_costmap" />
+        
+        <!-- 加载局部代价地图参数 -->
+        <rosparam file="$(find dwa_planner)/params/local_costmap_params.yaml" command="load" />
+        
+        <!-- 加载全局代价地图参数 -->
+        <rosparam file="$(find dwa_planner)/params/global_costmap_params.yaml" command="load" />
+        
+        <!-- 加载DWA局部规划器参数 -->
+        <rosparam file="$(find dwa_planner)/params/dwa_local_planner_params.yaml" command="load" />
+        
+        <!-- 坐标系配置 - 这些需要在运行时确定，所以保留在launch文件中 -->
+        <param name="global_costmap/global_frame" value="$(arg global_frame)"/>
+        <param name="global_costmap/robot_base_frame" value="base_link"/>
+        <param name="local_costmap/global_frame" value="$(arg global_frame)"/>
+        <param name="local_costmap/robot_base_frame" value="base_link"/>
+        
+        <remap from="cmd_vel" to="RosAria/cmd_vel"/>
+        <remap from="odom" to="RosAria/odom"/>
+    </node>
+
+    <!-- 启动轨迹可视化节点 -->
+    <node pkg="dwa_planner" type="trajectory_visualizer_node" name="trajectory_visualizer" output="screen">
+        <rosparam file="$(find dwa_planner)/params/trajectory_visualizer_params.yaml" command="load" />
+    </node>
+
+    <!-- 启动导航数据记录器 -->
+    <node pkg="dwa_planner" type="data_logger_node" name="navigation_data_logger" output="screen">
+        <rosparam file="$(find dwa_planner)/params/data_logger_params.yaml" command="load" />
+    </node>
+
+    <!-- 启动RViz可视化 - 使用特定的配置文件 -->
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find dwa_planner)/launch/p3dx_navigation.rviz" required="true">
+        <!-- 可以添加一个重新配置的命令，确保路径可视化 -->
+    </node>
+
+</launch> 

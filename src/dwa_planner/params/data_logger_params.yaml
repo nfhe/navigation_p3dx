@@ -1,0 +1,3 @@
+# 导航数据记录器参数
+
+log_dir: "$(find dwa_planner)/logs"

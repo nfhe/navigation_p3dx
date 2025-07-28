@@ -1,0 +1,7 @@
+# 轨迹可视化参数
+
+odom_topic: "/RosAria/odom"
+goal_topic: "/move_base_simple/goal"
+frame_id: "map"
+trajectory_duration: 3600.0
+marker_lifetime: 0.0
